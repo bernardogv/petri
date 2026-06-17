@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petri — a breedable garden of living patterns</title>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --panel: #11141b;
+    --panel-2: #161a23;
+    --line: #232838;
+    --ink: #e8ecf4;
+    --muted: #7f8aa3;
+    --accent: #38e1b0;
+    --accent-dim: #1c6e58;
+    --warn: #e16a6a;
+    --radius: 14px;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(1200px 800px at 70% -10%, #131a2a 0%, transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, #16121f 0%, transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    padding: 18px 26px 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 19px; font-weight: 600; margin: 0; letter-spacing: 0.3px;
+  }
+  header h1 b { color: var(--accent); font-weight: 700; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .lede {
+    flex-basis: 100%; color: var(--muted); font-size: 12.5px; line-height: 1.5;
+    max-width: 760px; margin-top: 2px;
+  }
+  main {
+    flex: 1; display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.85fr);
+    gap: 22px; padding: 22px 26px; align-items: start;
+  }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  /* ---- stage ---- */
+  .stage-wrap { display: flex; flex-direction: column; gap: 14px; }
+  .stage-frame {
+    position: relative; border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 0 0 1px #000 inset, 0 24px 60px -30px #000;
+    background: #000;
+  }
+  #stage {
+    display: block; width: 100%; aspect-ratio: 22 / 15; cursor: crosshair;
+  }
+  .stage-frame::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: 0 0 120px -20px var(--accent-dim) inset;
+    mix-blend-mode: screen; opacity: 0.5;
+  }
+  .stage-hint {
+    position: absolute; left: 12px; bottom: 10px; font-size: 11px;
+    color: var(--muted); background: rgba(8,10,14,.6); padding: 3px 8px;
+    border-radius: 999px; backdrop-filter: blur(6px); pointer-events: none;
+  }
+
+  .info {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .info-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  #spec-name { font-size: 18px; font-weight: 600; }
+  .code-row { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
+  #spec-code {
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent);
+    background: #0c1822; border: 1px solid #14323a; padding: 4px 9px;
+    border-radius: 7px; letter-spacing: 0.5px;
+  }
+  .spec-meta { display: flex; flex-wrap: wrap; gap: 7px; }
+  .spec-meta span {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .lineage { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .lineage .muted { color: var(--muted); font-size: 12px; font-style: italic; }
+  .chip {
+    font-size: 11px; color: var(--ink); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+    cursor: pointer; transition: border-color .15s;
+  }
+  .chip:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+  .info-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  /* ---- buttons ---- */
+  button {
+    font: inherit; cursor: pointer; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink); padding: 8px 13px; font-size: 13px;
+    transition: border-color .15s, background .15s, transform .05s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent-dim); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #04130d; border-color: var(--accent); font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: #4af0c0; }
+  button.danger:hover:not(:disabled) { border-color: var(--warn); color: var(--warn); }
+
+  /* ---- right column ---- */
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .panel + .panel { margin-top: 18px; }
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--muted); margin: 0 0 12px; font-weight: 600;
+  }
+  .breed-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  #breed-status { font-size: 12px; color: var(--muted); flex: 1; }
+  .mut { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .mut input { flex: 1; accent-color: var(--accent); }
+
+  .catalog {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    position: relative; border-radius: 11px; overflow: hidden; cursor: pointer;
+    border: 1px solid var(--line); background: #000;
+    transition: border-color .15s, transform .1s, box-shadow .15s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -16px #000; }
+  .card.viewing { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card.breeding { border-color: #d8a23a; }
+  .thumb { display: block; width: 100%; aspect-ratio: 1; }
+  .card-meta {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    padding: 6px 8px; background: var(--panel); border-top: 1px solid var(--line);
+  }
+  .cname { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .breed-toggle {
+    position: absolute; top: 6px; right: 6px; width: 24px; height: 24px;
+    padding: 0; border-radius: 7px; font-size: 13px; line-height: 1;
+    background: rgba(8,10,14,.65); backdrop-filter: blur(4px);
+  }
+  .card.breeding .breed-toggle { background: #d8a23a; color: #1a1205; border-color: #d8a23a; font-weight: 700; }
+
+  .import-row { display: flex; gap: 8px; }
+  .import-row input {
+    flex: 1; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 11px;
+  }
+  .import-row input::placeholder { color: #4a5268; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); border: 1px solid var(--accent-dim); color: var(--accent);
+    padding: 9px 16px; border-radius: 999px; font-size: 13px; font-family: var(--mono);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .foot { padding: 6px 26px 20px; color: #4a5268; font-size: 11px; }
+  .foot a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <header>
+    <h1><b>Petri</b> · a breedable garden of living patterns</h1>
+    <span class="sub">reaction-diffusion morphogenesis</span>
+    <p class="lede">
+      Each specimen is a <em>genome</em> — a handful of numbers that grow into a living
+      Turing pattern. Breed two and the offspring inherits a crossover of their genes,
+      plus mutation, and grows something new. Every specimen is a shareable seed code.
+      Click the dish to perturb it.
+    </p>
+  </header>
+
+  <main>
+    <section class="stage-wrap">
+      <div class="stage-frame">
+        <canvas id="stage"></canvas>
+        <div class="stage-hint">click to perturb · patterns evolve continuously</div>
+      </div>
+      <div class="info">
+        <div class="info-top">
+          <span id="spec-name">—</span>
+          <div class="info-actions" style="margin-top:0">
+            <button id="btn-reseed">Reseed</button>
+            <button id="btn-delete" class="danger">Delete</button>
+          </div>
+        </div>
+        <div class="code-row">
+          <code id="spec-code"></code>
+          <button id="btn-copy">Copy code</button>
+        </div>
+        <div class="spec-meta" id="spec-meta"></div>
+        <div class="lineage" id="lineage"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="panel">
+        <h2>Breeding</h2>
+        <div class="mut">
+          <span>mutation</span>
+          <input id="mutation" type="range" min="0" max="1" step="0.05" value="0.3">
+        </div>
+        <div class="breed-bar">
+          <span id="breed-status">pick 2 parents</span>
+          <button id="btn-breed" class="primary" disabled>Breed →</button>
+        </div>
+        <p class="muted" style="margin:0;color:var(--muted);font-size:11.5px;line-height:1.5">
+          Tap the <b>+</b> on two cards to choose parents.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 style="display:flex;justify-content:space-between;align-items:center">
+          Garden <button id="btn-spawn" class="primary" style="padding:5px 11px">+ Spawn wild</button>
+        </h2>
+        <div class="catalog" id="catalog"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Grow from a code</h2>
+        <div class="import-row">
+          <input id="import-code" placeholder="PETRI-XXXX-XXXX  (or any text)">
+          <button id="btn-import">Grow</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="foot">
+    Turing's 1952 reaction-diffusion model, made breedable. Everything runs locally; your
+    garden is saved in this browser.
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

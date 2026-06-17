@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petri — a breedable garden of living patterns</title>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --panel: #11141b;
+    --panel-2: #161a23;
+    --line: #232838;
+    --ink: #e8ecf4;
+    --muted: #7f8aa3;
+    --accent: #38e1b0;
+    --accent-dim: #1c6e58;
+    --warn: #e16a6a;
+    --radius: 14px;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(1200px 800px at 70% -10%, #131a2a 0%, transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, #16121f 0%, transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    padding: 18px 26px 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 19px; font-weight: 600; margin: 0; letter-spacing: 0.3px;
+  }
+  header h1 b { color: var(--accent); font-weight: 700; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .lede {
+    flex-basis: 100%; color: var(--muted); font-size: 12.5px; line-height: 1.5;
+    max-width: 760px; margin-top: 2px;
+  }
+  main {
+    flex: 1; display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.85fr);
+    gap: 22px; padding: 22px 26px; align-items: start;
+  }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  /* ---- stage ---- */
+  .stage-wrap { display: flex; flex-direction: column; gap: 14px; }
+  .stage-frame {
+    position: relative; border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 0 0 1px #000 inset, 0 24px 60px -30px #000;
+    background: #000;
+  }
+  #stage {
+    display: block; width: 100%; aspect-ratio: 22 / 15; cursor: crosshair;
+  }
+  .stage-frame::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: 0 0 120px -20px var(--accent-dim) inset;
+    mix-blend-mode: screen; opacity: 0.5;
+  }
+  .stage-hint {
+    position: absolute; left: 12px; bottom: 10px; font-size: 11px;
+    color: var(--muted); background: rgba(8,10,14,.6); padding: 3px 8px;
+    border-radius: 999px; backdrop-filter: blur(6px); pointer-events: none;
+  }
+
+  .info {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .info-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  #spec-name { font-size: 18px; font-weight: 600; }
+  .code-row { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
+  #spec-code {
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent);
+    background: #0c1822; border: 1px solid #14323a; padding: 4px 9px;
+    border-radius: 7px; letter-spacing: 0.5px;
+  }
+  .spec-meta { display: flex; flex-wrap: wrap; gap: 7px; }
+  .spec-meta span {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .lineage { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .lineage .muted { color: var(--muted); font-size: 12px; font-style: italic; }
+  .chip {
+    font-size: 11px; color: var(--ink); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+    cursor: pointer; transition: border-color .15s;
+  }
+  .chip:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+  .info-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  /* ---- buttons ---- */
+  button {
+    font: inherit; cursor: pointer; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink); padding: 8px 13px; font-size: 13px;
+    transition: border-color .15s, background .15s, transform .05s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent-dim); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #04130d; border-color: var(--accent); font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: #4af0c0; }
+  button.danger:hover:not(:disabled) { border-color: var(--warn); color: var(--warn); }
+
+  /* ---- right column ---- */
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .panel + .panel { margin-top: 18px; }
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--muted); margin: 0 0 12px; font-weight: 600;
+  }
+  .breed-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  #breed-status { font-size: 12px; color: var(--muted); flex: 1; }
+  .mut { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .mut input { flex: 1; accent-color: var(--accent); }
+
+  .catalog {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    position: relative; border-radius: 11px; overflow: hidden; cursor: pointer;
+    border: 1px solid var(--line); background: #000;
+    transition: border-color .15s, transform .1s, box-shadow .15s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -16px #000; }
+  .card.viewing { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card.breeding { border-color: #d8a23a; }
+  .thumb { display: block; width: 100%; aspect-ratio: 1; }
+  .card-meta {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    padding: 6px 8px; background: var(--panel); border-top: 1px solid var(--line);
+  }
+  .cname { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .breed-toggle {
+    position: absolute; top: 6px; right: 6px; width: 24px; height: 24px;
+    padding: 0; border-radius: 7px; font-size: 13px; line-height: 1;
+    background: rgba(8,10,14,.65); backdrop-filter: blur(4px);
+  }
+  .card.breeding .breed-toggle { background: #d8a23a; color: #1a1205; border-color: #d8a23a; font-weight: 700; }
+
+  .import-row { display: flex; gap: 8px; }
+  .import-row input {
+    flex: 1; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 11px;
+  }
+  .import-row input::placeholder { color: #4a5268; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); border: 1px solid var(--accent-dim); color: var(--accent);
+    padding: 9px 16px; border-radius: 999px; font-size: 13px; font-family: var(--mono);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .foot { padding: 6px 26px 20px; color: #4a5268; font-size: 11px; }
+  .foot a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <header>
+    <h1><b>Petri</b> · a breedable garden of living patterns</h1>
+    <span class="sub">reaction-diffusion morphogenesis</span>
+    <p class="lede">
+      Each specimen is a <em>genome</em> — a handful of numbers that grow into a living
+      Turing pattern. Breed two and the offspring inherits a crossover of their genes,
+      plus mutation, and grows something new. Every specimen is a shareable seed code.
+      Click the dish to perturb it.
+    </p>
+  </header>
+
+  <main>
+    <section class="stage-wrap">
+      <div class="stage-frame">
+        <canvas id="stage"></canvas>
+        <div class="stage-hint">click to perturb · patterns evolve continuously</div>
+      </div>
+      <div class="info">
+        <div class="info-top">
+          <span id="spec-name">—</span>
+          <div class="info-actions" style="margin-top:0">
+            <button id="btn-reseed">Reseed</button>
+            <button id="btn-delete" class="danger">Delete</button>
+          </div>
+        </div>
+        <div class="code-row">
+          <code id="spec-code"></code>
+          <button id="btn-copy">Copy code</button>
+        </div>
+        <div class="spec-meta" id="spec-meta"></div>
+        <div class="lineage" id="lineage"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="panel">
+        <h2>Breeding</h2>
+        <div class="mut">
+          <span>mutation</span>
+          <input id="mutation" type="range" min="0" max="1" step="0.05" value="0.3">
+        </div>
+        <div class="breed-bar">
+          <span id="breed-status">pick 2 parents</span>
+          <button id="btn-breed" class="primary" disabled>Breed →</button>
+        </div>
+        <p class="muted" style="margin:0;color:var(--muted);font-size:11.5px;line-height:1.5">
+          Tap the <b>+</b> on two cards to choose parents.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 style="display:flex;justify-content:space-between;align-items:center">
+          Garden <button id="btn-spawn" class="primary" style="padding:5px 11px">+ Spawn wild</button>
+        </h2>
+        <div class="catalog" id="catalog"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Grow from a code</h2>
+        <div class="import-row">
+          <input id="import-code" placeholder="PETRI-XXXX-XXXX  (or any text)">
+          <button id="btn-import">Grow</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="foot">
+    Turing's 1952 reaction-diffusion model, made breedable. Everything runs locally; your
+    garden is saved in this browser.
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module">
+// ===== rng.js =====
+
+// Deterministic, seedable PRNG. Browser + Node, no dependencies.
+
+// xmur3 string hash -> 32-bit unsigned int.
+function hashString(str) {
+  const s = String(str);
+  let h = 1779033703 ^ s.length;
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(h ^ s.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
+}
+
+// mulberry32: fast, well-distributed 32-bit PRNG. Returns a function -> [0,1).
+function makeRng(seed) {
+  let a = (typeof seed === 'number' ? seed >>> 0 : hashString(seed)) >>> 0;
+  return function next() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Convenience: gaussian-ish sample (sum of uniforms), mean 0, ~unit spread.
+function gaussian(rng) {
+  return (rng() + rng() + rng() + rng() - 2) / 1.0;
+}
+
+
+// ===== palette.js =====
+
+// Color palettes mapping a chemical concentration t in [0,1] -> RGB.
+// Each palette is a list of [stop, [r,g,b]] control points, interpolated.
+
+const PALETTES = [
+  { name: 'Coral', stops: [[0, [12, 10, 30]], [0.4, [120, 30, 60]], [0.7, [240, 110, 90]], [1, [255, 225, 170]]] },
+  { name: 'Abyss', stops: [[0, [2, 6, 18]], [0.5, [10, 60, 110]], [0.8, [40, 170, 200]], [1, [200, 255, 245]]] },
+  { name: 'Moss',  stops: [[0, [8, 14, 8]], [0.45, [30, 80, 35]], [0.75, [120, 175, 60]], [1, [240, 245, 190]]] },
+  { name: 'Ember', stops: [[0, [10, 4, 4]], [0.4, [90, 15, 10]], [0.7, [220, 90, 20]], [1, [255, 230, 120]]] },
+  { name: 'Iris',  stops: [[0, [12, 8, 28]], [0.45, [70, 30, 130]], [0.75, [180, 90, 200]], [1, [250, 220, 255]]] },
+  { name: 'Bone',  stops: [[0, [14, 14, 16]], [0.5, [90, 88, 96]], [0.8, [180, 178, 185]], [1, [248, 248, 250]]] },
+];
+
+const clampByte = (v) => {
+  if (!Number.isFinite(v)) return 0;
+  const r = Math.round(v);
+  return r < 0 ? 0 : r > 255 ? 255 : r;
+};
+
+function sample(paletteId, t) {
+  const p = PALETTES[((paletteId % PALETTES.length) + PALETTES.length) % PALETTES.length];
+  let x = Number.isFinite(t) ? t : 0;
+  if (x < 0) x = 0; else if (x > 1) x = 1;
+  const stops = p.stops;
+  for (let i = 1; i < stops.length; i++) {
+    const [s0, c0] = stops[i - 1];
+    const [s1, c1] = stops[i];
+    if (x <= s1) {
+      const f = s1 === s0 ? 0 : (x - s0) / (s1 - s0);
+      return [
+        clampByte(c0[0] + (c1[0] - c0[0]) * f),
+        clampByte(c0[1] + (c1[1] - c0[1]) * f),
+        clampByte(c0[2] + (c1[2] - c0[2]) * f),
+      ];
+    }
+  }
+  const last = stops[stops.length - 1][1];
+  return [clampByte(last[0]), clampByte(last[1]), clampByte(last[2])];
+}
+
+// Fill an RGBA ImageData-style buffer from a field's B channel.
+function renderToBuffer(field, paletteId, out) {
+  const b = field.b;
+  for (let i = 0; i < b.length; i++) {
+    const [r, g, bl] = sample(paletteId, b[i]);
+    const o = i * 4;
+    out[o] = r; out[o + 1] = g; out[o + 2] = bl; out[o + 3] = 255;
+  }
+  return out;
+}
+
+
+// ===== sim.js =====
+
+// Gray-Scott reaction-diffusion on a toroidal grid.
+// Two chemicals A and B; A is fed in, B is removed; B catalyses its own
+// production from A. The interplay grows spots, stripes, mazes, coral.
+
+function createField(w, h) {
+  const n = w * h;
+  const field = {
+    w, h,
+    a: new Float32Array(n),
+    b: new Float32Array(n),
+    _a: new Float32Array(n), // scratch buffers (double-buffering)
+    _b: new Float32Array(n),
+  };
+  field.a.fill(1);
+  field.b.fill(0);
+  return field;
+}
+
+// Initial B distribution. Different "seedKind"s give different starting forms.
+// All four are LOCALIZED: a Turing instability needs a spatial gradient to grow
+// from. Full-field noise tends to homogenize into a featureless steady state.
+function seedField(field, seedKind) {
+  const { w, h, b } = field;
+  field.a.fill(1);
+  b.fill(0);
+  const kind = ((seedKind % 4) + 4) % 4;
+  const cx = (w / 2) | 0, cy = (h / 2) | 0;
+  const r0 = Math.max(3, (Math.min(w, h) / 8) | 0);
+  const blob = (bx, by, r) => {
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        if (x * x + y * y > r * r) continue;
+        b[(((by + y) % h + h) % h) * w + (((bx + x) % w + w) % w)] = 1;
+      }
+    }
+  };
+  if (kind === 0) {
+    blob(cx, cy, r0); // central disc
+  } else if (kind === 1) {
+    const o = (w / 4) | 0; // quincunx: center + four satellites
+    blob(cx, cy, r0 - 1);
+    blob(cx - o, cy - o, 3); blob(cx + o, cy - o, 3);
+    blob(cx - o, cy + o, 3); blob(cx + o, cy + o, 3);
+  } else if (kind === 2) {
+    const R = r0 * 2; // ring / annulus
+    for (let y = -R; y <= R; y++) {
+      for (let x = -R; x <= R; x++) {
+        const d = Math.sqrt(x * x + y * y);
+        if (d > R - 2 && d < R) b[(((cy + y) % h + h) % h) * w + (((cx + x) % w + w) % w)] = 1;
+      }
+    }
+  } else {
+    const off = (w / 5) | 0; // dividing pair
+    blob(cx - off, cy, r0 - 1);
+    blob(cx + off, cy, r0 - 1);
+  }
+  return field;
+}
+
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : Number.isFinite(v) ? v : 0);
+
+// One Euler step. Laplacian via the standard 3x3 weighted kernel, wrapped.
+function step(field, params) {
+  const { w, h, a, b, _a, _b } = field;
+  const feed = params.feed, kill = params.kill;
+  const dA = params.dA, dB = params.dB;
+  for (let y = 0; y < h; y++) {
+    const yu = ((y - 1 + h) % h) * w;
+    const yd = ((y + 1) % h) * w;
+    const yc = y * w;
+    for (let x = 0; x < w; x++) {
+      const xl = (x - 1 + w) % w;
+      const xr = (x + 1) % w;
+      const c = yc + x;
+      // weighted laplacian: center -1, edges .2, corners .05
+      const lapA =
+        a[yc + xl] * 0.2 + a[yc + xr] * 0.2 + a[yu + x] * 0.2 + a[yd + x] * 0.2 +
+        a[yu + xl] * 0.05 + a[yu + xr] * 0.05 + a[yd + xl] * 0.05 + a[yd + xr] * 0.05 -
+        a[c];
+      const lapB =
+        b[yc + xl] * 0.2 + b[yc + xr] * 0.2 + b[yu + x] * 0.2 + b[yd + x] * 0.2 +
+        b[yu + xl] * 0.05 + b[yu + xr] * 0.05 + b[yd + xl] * 0.05 + b[yd + xr] * 0.05 -
+        b[c];
+      const av = a[c], bv = b[c];
+      const reaction = av * bv * bv;
+      _a[c] = clamp01(av + (dA * lapA - reaction + feed * (1 - av)));
+      _b[c] = clamp01(bv + (dB * lapB + reaction - (kill + feed) * bv));
+    }
+  }
+  a.set(_a);
+  b.set(_b);
+  return field;
+}
+
+
+// ===== genome.js =====
+
+// A specimen's genome: the heritable parameters that grow into a pattern.
+
+// Each gene: continuous (min/max/steps) or discrete (count). `steps`/`count`
+// define the quantization grid used by the shareable seed-string codec.
+const GENES = [
+  { name: 'feed', kind: 'num', min: 0.012, max: 0.090, steps: 64 },
+  { name: 'kill', kind: 'num', min: 0.045, max: 0.070, steps: 64 },
+  { name: 'dA',   kind: 'num', min: 0.80,  max: 1.20,  steps: 16 },
+  { name: 'dB',   kind: 'num', min: 0.30,  max: 0.60,  steps: 16 },
+  { name: 'seedKind', kind: 'disc', count: 4 },
+  { name: 'palette',  kind: 'disc', count: 6 },
+];
+
+const span = (gene) => (gene.kind === 'disc' ? gene.count : gene.steps);
+
+function clampNum(v, min, max) {
+  if (!Number.isFinite(v)) return min;
+  return v < min ? min : v > max ? max : v;
+}
+
+function clampGenome(g) {
+  const out = {};
+  for (const gene of GENES) {
+    if (gene.kind === 'disc') {
+      let v = Math.round(Number(g[gene.name]) || 0);
+      v = ((v % gene.count) + gene.count) % gene.count; // wrap into [0,count)
+      out[gene.name] = v;
+    } else {
+      out[gene.name] = clampNum(Number(g[gene.name]), gene.min, gene.max);
+    }
+  }
+  return out;
+}
+
+function randomGenome(rng) {
+  const g = {};
+  for (const gene of GENES) {
+    if (gene.kind === 'disc') {
+      g[gene.name] = Math.floor(rng() * gene.count);
+    } else {
+      g[gene.name] = gene.min + rng() * (gene.max - gene.min);
+    }
+  }
+  return g;
+}
+
+// Curated, empirically-verified pattern-forming (feed,kill) anchors spanning
+// distinct morphologies. Random spawns start near one of these "wild species"
+// so the garden is always alive; breeding explores the space between them.
+const CLASSIC_PATTERNS = [
+  { name: 'Maze',     feed: 0.030, kill: 0.055 },
+  { name: 'Mitosis',  feed: 0.034, kill: 0.059 },
+  { name: 'Worms',    feed: 0.042, kill: 0.061 },
+  { name: 'Spots',    feed: 0.050, kill: 0.063 },
+  { name: 'Holes',    feed: 0.058, kill: 0.065 },
+  { name: 'Solitons', feed: 0.062, kill: 0.061 },
+  { name: 'Lace',     feed: 0.074, kill: 0.063 },
+  { name: 'Chaos',    feed: 0.082, kill: 0.059 },
+];
+
+// A fresh, viable specimen: pick a wild anchor, jitter lightly, randomize the
+// non-rate genes (diffusion, seed pattern, palette).
+function wildGenome(rng) {
+  const anchor = CLASSIC_PATTERNS[Math.floor(rng() * CLASSIC_PATTERNS.length)];
+  return clampGenome({
+    feed: anchor.feed + (rng() - 0.5) * 0.004,
+    kill: anchor.kill + (rng() - 0.5) * 0.003,
+    dA: 0.95 + rng() * 0.12,
+    dB: 0.46 + rng() * 0.10,
+    seedKind: Math.floor(rng() * 4),
+    palette: Math.floor(rng() * 6),
+  });
+}
+
+// --- shareable seed-string codec (mixed-radix over quantized genes) ---
+
+const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // base32, no I/L/O/U
+
+function geneToIndex(gene, value) {
+  if (gene.kind === 'disc') {
+    return ((Math.round(value) % gene.count) + gene.count) % gene.count;
+  }
+  const t = (clampNum(value, gene.min, gene.max) - gene.min) / (gene.max - gene.min);
+  return Math.min(gene.steps - 1, Math.round(t * (gene.steps - 1)));
+}
+
+function indexToGene(gene, idx) {
+  if (gene.kind === 'disc') return ((idx % gene.count) + gene.count) % gene.count;
+  return gene.min + (idx / (gene.steps - 1)) * (gene.max - gene.min);
+}
+
+function toBase32(n) {
+  let s = '';
+  let v = BigInt(n);
+  if (v === 0n) s = '0';
+  const base = BigInt(ALPHABET.length);
+  while (v > 0n) {
+    s = ALPHABET[Number(v % base)] + s;
+    v /= base;
+  }
+  return s.padStart(6, '0');
+}
+
+function group(s) {
+  return s.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+}
+
+function encode(genome) {
+  const g = clampGenome(genome);
+  let n = 0n;
+  for (const gene of GENES) {
+    n = n * BigInt(span(gene)) + BigInt(geneToIndex(gene, g[gene.name]));
+  }
+  return 'PETRI-' + group(toBase32(n));
+}
+
+function decodeCanonical(str) {
+  const body = str.slice('PETRI-'.length).replace(/-/g, '').toUpperCase();
+  let n = 0n;
+  const base = BigInt(ALPHABET.length);
+  for (const ch of body) {
+    const d = ALPHABET.indexOf(ch);
+    if (d < 0) return null;
+    n = n * base + BigInt(d);
+  }
+  const idx = [];
+  for (let i = GENES.length - 1; i >= 0; i--) {
+    const m = BigInt(span(GENES[i]));
+    idx[i] = Number(n % m);
+    n /= m;
+  }
+  const g = {};
+  GENES.forEach((gene, i) => { g[gene.name] = indexToGene(gene, idx[i]); });
+  return clampGenome(g);
+}
+
+// Total: any string maps to a valid genome. Canonical codes decode exactly;
+// anything else is hashed into a deterministic random genome.
+function decode(str) {
+  const s = String(str).trim();
+  if (s.toUpperCase().startsWith('PETRI-')) {
+    const g = decodeCanonical(s);
+    if (g) return g;
+  }
+  // Arbitrary text maps to a viable "wild" genome (biased to living patterns),
+  // so "grow from any text" always produces something alive.
+  return wildGenome(makeRng('fallback:' + s));
+}
+
+// --- breeding: per-gene crossover from a parent, then bounded mutation ---
+
+function breed(parentA, parentB, seedStr, mutationRate = 0.25) {
+  const a = clampGenome(parentA);
+  const b = clampGenome(parentB);
+  const rng = makeRng('breed:' + seedStr);
+  const child = {};
+  for (const gene of GENES) {
+    // crossover: pick this gene from one parent
+    let v = (rng() < 0.5 ? a : b)[gene.name];
+    // mutation
+    if (rng() < mutationRate) {
+      if (gene.kind === 'disc') {
+        v = Math.floor(rng() * gene.count);
+      } else {
+        const range = gene.max - gene.min;
+        v = clampNum(v + gaussian(rng) * range * 0.25, gene.min, gene.max);
+      }
+    }
+    child[gene.name] = v;
+  }
+  return child;
+}
+
+
+// ===== garden.js =====
+
+// The collection: specimens, their lineage, and persistence.
+
+const KEY = 'petri.garden.v1';
+
+function createGarden(storage) {
+  const safe = wrapStorage(storage);
+  let seq = 0;
+  let specimens = []; // { id, name, code, genome, parents:[id], gen }
+  const byId = new Map();
+
+  function index() {
+    byId.clear();
+    for (const s of specimens) byId.set(s.id, s);
+  }
+
+  function load() {
+    const raw = safe.get(KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      if (data && Array.isArray(data.specimens)) {
+        specimens = data.specimens;
+        seq = Number(data.seq) || specimens.length;
+        index();
+      }
+    } catch { /* corrupt store: start fresh */ }
+  }
+
+  function save() {
+    safe.set(KEY, JSON.stringify({ seq, specimens }));
+  }
+
+  function add({ genome, name, parents = [] }) {
+    const g = clampGenome(genome);
+    const id = 's' + (++seq);
+    const parentGens = parents
+      .map((pid) => byId.get(pid))
+      .filter(Boolean)
+      .map((p) => p.gen);
+    const gen = parentGens.length ? Math.max(...parentGens) + 1 : 0;
+    const specimen = {
+      id,
+      name: name || nameFor(g, id),
+      code: encode(g),
+      genome: g,
+      parents: parents.slice(),
+      gen,
+    };
+    specimens.push(specimen);
+    byId.set(id, specimen);
+    save();
+    return specimen;
+  }
+
+  function remove(id) {
+    specimens = specimens.filter((s) => s.id !== id);
+    index();
+    save();
+  }
+
+  function lineage(id) {
+    const out = [];
+    const seen = new Set([id]);
+    let frontier = (byId.get(id)?.parents || []).slice();
+    while (frontier.length) {
+      const next = [];
+      for (const pid of frontier) {
+        if (seen.has(pid)) continue;
+        seen.add(pid);
+        const p = byId.get(pid);
+        if (p) {
+          out.push(p);
+          next.push(...p.parents);
+        }
+      }
+      frontier = next;
+    }
+    return out; // nearest ancestors first
+  }
+
+  load();
+
+  return {
+    add,
+    remove,
+    get: (id) => byId.get(id),
+    all: () => specimens.slice(),
+    lineage,
+    save,
+  };
+}
+
+function wrapStorage(storage) {
+  return {
+    get(k) { try { return storage ? storage.getItem(k) : null; } catch { return null; } },
+    set(k, v) { try { if (storage) storage.setItem(k, v); } catch { /* ignore */ } },
+  };
+}
+
+// Whimsical deterministic name from the genome's code.
+const ADJ = ['Coral', 'Velvet', 'Pulsing', 'Quiet', 'Fractured', 'Golden',
+  'Drifting', 'Mottled', 'Lucent', 'Tangled', 'Spiral', 'Hollow'];
+const NOUN = ['Reef', 'Bloom', 'Lattice', 'Maze', 'Spore', 'Vein',
+  'Polyp', 'Cluster', 'Drift', 'Mesh', 'Frond', 'Pith'];
+
+function nameFor(genome, salt = '') {
+  const code = encode(genome) + salt;
+  let h = 0;
+  for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0;
+  return ADJ[h % ADJ.length] + ' ' + NOUN[(h >>> 8) % NOUN.length];
+}
+
+
+// ===== render.js =====
+
+// Canvas rendering for a sim field. Renders at grid resolution into an
+// offscreen buffer, then scales up to fill the visible canvas.
+
+function makeDishRenderer(field) {
+  const off = document.createElement('canvas');
+  off.width = field.w;
+  off.height = field.h;
+  const octx = off.getContext('2d', { willReadFrequently: true });
+  const img = octx.createImageData(field.w, field.h);
+  const data = img.data;
+
+  return function draw(ctx, paletteId) {
+    const b = field.b;
+    for (let i = 0; i < b.length; i++) {
+      const rgb = sample(paletteId, b[i]);
+      const o = i * 4;
+      data[o] = rgb[0];
+      data[o + 1] = rgb[1];
+      data[o + 2] = rgb[2];
+      data[o + 3] = 255;
+    }
+    octx.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  };
+}
+
+
+// ===== main.js =====
+
+const simStep = step;
+
+// Petri — wires the garden, breeding, and live animation to the DOM.
+
+const MAIN_W = 220, MAIN_H = 150;   // main-stage grid
+const THUMB = 96;                   // thumbnail grid (square)
+const MAIN_STEPS = 12, THUMB_STEPS = 5;
+
+const $ = (id) => document.getElementById(id);
+
+// ---- Dish: a single growing specimen ----------------------------------------
+function makeDish(genome, w, h) {
+  const field = createField(w, h);
+  seedField(field, genome.seedKind);
+  const renderer = makeDishRenderer(field);
+  return {
+    genome,
+    field,
+    age: 0,
+    step(n) {
+      const { feed, kill, dA, dB } = genome;
+      for (let i = 0; i < n; i++) simStep(field, { feed, kill, dA, dB });
+      this.age += n;
+    },
+    draw(ctx) { renderer(ctx, genome.palette); },
+    reseed() { seedField(field, genome.seedKind); this.age = 0; },
+    perturb(gx, gy, r = Math.max(3, (w / 30) | 0)) {
+      for (let y = -r; y <= r; y++) {
+        for (let x = -r; x <= r; x++) {
+          if (x * x + y * y > r * r) continue;
+          const px = ((gx + x) % w + w) % w, py = ((gy + y) % h + h) % h;
+          field.b[py * w + px] = 1;
+        }
+      }
+    },
+  };
+}
+
+// ---- App state --------------------------------------------------------------
+const garden = createGarden(typeof localStorage !== 'undefined' ? localStorage : null);
+const thumbs = new Map();   // id -> { dish, canvas, ctx, card }
+const breedPair = [];       // up to 2 specimen ids
+let mainDish = null;
+let selectedId = null;
+
+const stage = $('stage');
+const stageCtx = stage.getContext('2d');
+
+// ---- Selection / main stage -------------------------------------------------
+function select(id) {
+  const spec = garden.get(id);
+  if (!spec) return;
+  selectedId = id;
+  mainDish = makeDish(spec.genome, MAIN_W, MAIN_H);
+  renderInfo(spec);
+  for (const [tid, t] of thumbs) t.card.classList.toggle('viewing', tid === id);
+}
+
+function renderInfo(spec) {
+  $('spec-name').textContent = spec.name;
+  $('spec-code').textContent = spec.code;
+  const pal = PALETTES[spec.genome.palette % PALETTES.length].name;
+  $('spec-meta').innerHTML =
+    `<span>gen ${spec.gen}</span><span>palette ${pal}</span>` +
+    `<span>feed ${spec.genome.feed.toFixed(3)}</span><span>kill ${spec.genome.kill.toFixed(3)}</span>`;
+  const anc = garden.lineage(spec.id);
+  const tray = $('lineage');
+  if (!anc.length) {
+    tray.innerHTML = '<span class="muted">wild specimen — no ancestors</span>';
+  } else {
+    tray.innerHTML = anc.slice(0, 8)
+      .map((a) => `<button class="chip" data-goto="${a.id}">${a.name} · g${a.gen}</button>`)
+      .join('');
+  }
+}
+
+// ---- Catalog ----------------------------------------------------------------
+function buildCard(spec) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = spec.id;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'thumb';
+  canvas.width = THUMB; canvas.height = THUMB;
+  const meta = document.createElement('div');
+  meta.className = 'card-meta';
+  meta.innerHTML = `<span class="cname">${spec.name}</span><span class="badge">g${spec.gen}</span>`;
+  const breedBtn = document.createElement('button');
+  breedBtn.className = 'breed-toggle';
+  breedBtn.title = 'add to breeding pair';
+  breedBtn.textContent = '+';
+  breedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleBreed(spec.id); });
+  card.append(canvas, meta, breedBtn);
+  card.addEventListener('click', () => select(spec.id));
+
+  const dish = makeDish(spec.genome, THUMB, THUMB);
+  const ctx = canvas.getContext('2d');
+  thumbs.set(spec.id, { dish, canvas, ctx, card });
+  $('catalog').prepend(card);
+}
+
+function addSpecimen(opts) {
+  const spec = garden.add(opts);
+  buildCard(spec);
+  return spec;
+}
+
+function removeSpecimen(id) {
+  const t = thumbs.get(id);
+  if (t) t.card.remove();
+  thumbs.delete(id);
+  const bi = breedPair.indexOf(id);
+  if (bi >= 0) breedPair.splice(bi, 1);
+  garden.remove(id);
+  if (selectedId === id) {
+    const next = garden.all()[garden.all().length - 1];
+    if (next) select(next.id); else { mainDish = null; clearInfo(); }
+  }
+  refreshBreedUI();
+}
+
+function clearInfo() {
+  $('spec-name').textContent = '—';
+  $('spec-code').textContent = '';
+  $('spec-meta').innerHTML = '';
+  $('lineage').innerHTML = '';
+}
+
+// ---- Breeding ---------------------------------------------------------------
+function toggleBreed(id) {
+  const i = breedPair.indexOf(id);
+  if (i >= 0) breedPair.splice(i, 1);
+  else { breedPair.push(id); if (breedPair.length > 2) breedPair.shift(); }
+  refreshBreedUI();
+}
+
+function refreshBreedUI() {
+  for (const [tid, t] of thumbs) {
+    const idx = breedPair.indexOf(tid);
+    t.card.classList.toggle('breeding', idx >= 0);
+    t.card.querySelector('.breed-toggle').textContent = idx >= 0 ? (idx + 1) : '+';
+  }
+  const ready = breedPair.length === 2;
+  $('btn-breed').disabled = !ready;
+  const names = breedPair.map((id) => garden.get(id)?.name).filter(Boolean);
+  $('breed-status').textContent = ready
+    ? `${names[0]}  ×  ${names[1]}`
+    : `pick ${2 - breedPair.length} more parent${breedPair.length === 1 ? '' : 's'}`;
+}
+
+function doBreed() {
+  if (breedPair.length !== 2) return;
+  const [aId, bId] = breedPair;
+  const a = garden.get(aId), b = garden.get(bId);
+  const m = Number($('mutation').value);
+  // salt by current population so repeated crosses of the same pair vary
+  const seed = `${a.code}|${b.code}|${garden.all().length}`;
+  const childGenome = breed(a.genome, b.genome, seed, m);
+  const child = addSpecimen({
+    genome: childGenome,
+    name: nameFor(childGenome, seed),
+    parents: [aId, bId],
+  });
+  flash(`bred ${child.name} (gen ${child.gen})`);
+  select(child.id);
+}
+
+// ---- Actions ----------------------------------------------------------------
+let spawnCounter = 0;
+function spawnWild() {
+  const g = wildGenome(makeRng('wild:' + Date.now() + ':' + (spawnCounter++)));
+  const spec = addSpecimen({ genome: g, name: nameFor(g, 'w' + spawnCounter) });
+  flash(`spawned ${spec.name}`);
+  select(spec.id);
+}
+
+function importCode() {
+  const raw = $('import-code').value.trim();
+  if (!raw) return;
+  const g = decode(raw);
+  const spec = addSpecimen({ genome: g, name: nameFor(g, raw) });
+  $('import-code').value = '';
+  flash(`grew ${spec.name} from code`);
+  select(spec.id);
+}
+
+let flashTimer = null;
+function flash(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ---- Animation loop ---------------------------------------------------------
+function frame() {
+  if (mainDish) {
+    mainDish.step(MAIN_STEPS);
+    mainDish.draw(stageCtx);
+  }
+  for (const { dish, ctx } of thumbs.values()) {
+    dish.step(THUMB_STEPS);
+    dish.draw(ctx);
+  }
+  requestAnimationFrame(frame);
+}
+
+// ---- Wiring -----------------------------------------------------------------
+function init() {
+  stage.width = MAIN_W * 3;
+  stage.height = MAIN_H * 3;
+
+  $('btn-spawn').addEventListener('click', spawnWild);
+  $('btn-breed').addEventListener('click', doBreed);
+  $('btn-import').addEventListener('click', importCode);
+  $('import-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') importCode(); });
+  $('btn-reseed').addEventListener('click', () => { if (mainDish) { mainDish.reseed(); flash('reseeded'); } });
+  $('btn-delete').addEventListener('click', () => { if (selectedId) removeSpecimen(selectedId); });
+  $('btn-copy').addEventListener('click', () => {
+    const code = $('spec-code').textContent;
+    if (code && navigator.clipboard) navigator.clipboard.writeText(code).then(() => flash('code copied'));
+  });
+  $('lineage').addEventListener('click', (e) => {
+    const id = e.target?.dataset?.goto;
+    if (id) select(id);
+  });
+  stage.addEventListener('click', (e) => {
+    if (!mainDish) return;
+    const rect = stage.getBoundingClientRect();
+    const gx = Math.floor((e.clientX - rect.left) / rect.width * MAIN_W);
+    const gy = Math.floor((e.clientY - rect.top) / rect.height * MAIN_H);
+    mainDish.perturb(gx, gy);
+    flash('perturbed');
+  });
+
+  // populate from saved garden, or seed a few wild specimens
+  const existing = garden.all();
+  if (existing.length === 0) {
+    for (let i = 0; i < 4; i++) {
+      const g = wildGenome(makeRng('starter:' + i));
+      addSpecimen({ genome: g, name: nameFor(g, 'start' + i) });
+    }
+  } else {
+    for (const spec of existing) buildCard(spec);
+  }
+  select(garden.all()[garden.all().length - 1].id);
+  refreshBreedUI();
+  requestAnimationFrame(frame);
+
+  // Debug handle: lets the sim be advanced synchronously even while the tab is
+  // backgrounded (rAF is paused when hidden). Used for headless verification.
+  window.__petri = {
+    get main() { return mainDish; },
+    advanceAll(n = 1000) {
+      if (mainDish) mainDish.step(n);
+      for (const { dish } of thumbs.values()) dish.step(n);
+      if (mainDish) mainDish.draw(stageCtx);
+      for (const { dish, ctx } of thumbs.values()) dish.draw(ctx);
+      return mainDish ? mainDish.age : 0;
+    },
+  };
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "petri",
+  "version": "1.0.0",
+  "description": "A breedable garden of living reaction-diffusion patterns",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "build": "node build.mjs",
+    "serve": "python3 -m http.server 8731"
+  },
+  "license": "MIT"
+}
