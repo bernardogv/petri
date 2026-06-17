@@ -2,6 +2,10 @@
 
 **A breedable garden of living patterns.**
 
+![A montage of evolved Petri specimens](assets/hero.png)
+
+### ▶ [Play it live →](https://bernardogv.github.io/petri/)
+
 Petri treats the parameter-space of a [reaction-diffusion](https://en.wikipedia.org/wiki/Reaction%E2%80%93diffusion_system)
 simulation as a **genome you can breed**. Each specimen is a handful of numbers
 that grow — live, on a canvas — into a unique Turing pattern: coral, mazes,
@@ -19,8 +23,9 @@ required — just open the file.
 
 ## Try it
 
-- **Easiest:** download [`petri.html`](petri.html) and double-click it. It's a
-  single self-contained file that runs offline.
+- **In your browser:** [bernardogv.github.io/petri](https://bernardogv.github.io/petri/)
+- **Offline:** download [`petri.html`](petri.html) and double-click it. It's a
+  single self-contained file with no dependencies.
 - **From source:**
   ```sh
   npm run serve     # serves index.html at http://localhost:8731
